@@ -19,15 +19,12 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
 
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 8.2
-        cache-disabled: true
-
-    - name: Clean build
-      run: gradle clean
 
     - name: Build with Gradle
       run: gradle assembleDebug
