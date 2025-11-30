@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.securevault.crypto.AuthManager
 import com.example.securevault.crypto.CryptoManager
 import com.example.securevault.crypto.ExportImportManager
 import com.example.securevault.data.AppDatabase
@@ -20,23 +21,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: CredentialRepository
     private val exportImportManager: ExportImportManager
+    private val authManager: AuthManager
 
     val credentials: StateFlow<List<CredentialRepository.DomainCredential>>
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
+    
+    // Auth State
+    private val _isUserAuthenticated = MutableStateFlow(false)
+    val isUserAuthenticated: StateFlow<Boolean> = _isUserAuthenticated
+    
+    private val _isSetupRequired = MutableStateFlow(true)
+    val isSetupRequired: StateFlow<Boolean> = _isSetupRequired
 
     init {
         val database = AppDatabase.getDatabase(application)
         val cryptoManager = CryptoManager()
         repository = CredentialRepository(database.credentialDao(), cryptoManager)
         exportImportManager = ExportImportManager(application)
+        authManager = AuthManager(application)
+        
+        _isSetupRequired.value = !authManager.isSetup()
         
         credentials = repository.domainCredentials.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+    }
+    
+    fun setupMasterPassword(password: String) {
+        if (authManager.setupMasterPassword(password)) {
+            _isSetupRequired.value = false
+            _isUserAuthenticated.value = true
+        } else {
+            _uiState.value = UiState.Error("Failed to set password")
+        }
+    }
+    
+    fun verifyMasterPassword(password: String) {
+        if (authManager.verifyMasterPassword(password)) {
+            _isUserAuthenticated.value = true
+        } else {
+            _uiState.value = UiState.Error("Incorrect Password")
+        }
     }
 
     fun addCredential(title: String, username: String, pass: String, notes: String) {
