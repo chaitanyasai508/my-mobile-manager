@@ -2,6 +2,8 @@ package com.example.securevault.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,26 +22,28 @@ fun TabbedHomeScreen(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Passwords", "Bills")
+    val icons = listOf(Icons.Default.Lock, Icons.Default.Receipt)
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("SecureVault") },
-                    actions = {
-                        IconButton(onClick = onSettingsClick) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
+            TopAppBar(
+                title = { Text(tabs[selectedTab]) },
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
-                )
-                TabRow(selectedTabIndex = selectedTab) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(title) }
-                        )
-                    }
+                }
+            )
+        },
+        bottomBar = {
+            NavigationBar {
+                tabs.forEachIndexed { index, title ->
+                    NavigationBarItem(
+                        icon = { Icon(icons[index], contentDescription = title) },
+                        label = { Text(title) },
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index }
+                    )
                 }
             }
         }
