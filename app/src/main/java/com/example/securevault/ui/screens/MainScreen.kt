@@ -24,10 +24,12 @@ fun MainScreen(viewModel: MainViewModel) {
             )
         }
         composable("home") {
-            HomeScreen(
+            TabbedHomeScreen(
                 viewModel = viewModel,
-                onAddClick = { navController.navigate("add_edit/-1") },
-                onItemClick = { id -> navController.navigate("add_edit/$id") },
+                onAddCredentialClick = { navController.navigate("add_edit/-1") },
+                onCredentialClick = { id -> navController.navigate("add_edit/$id") },
+                onAddBillClick = { navController.navigate("add_edit_bill/-1") },
+                onBillClick = { id -> navController.navigate("add_edit_bill/$id") },
                 onSettingsClick = { navController.navigate("settings") }
             )
         }
@@ -39,6 +41,17 @@ fun MainScreen(viewModel: MainViewModel) {
             AddEditScreen(
                 viewModel = viewModel,
                 credentialId = credentialId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            "add_edit_bill/{billId}",
+            arguments = listOf(navArgument("billId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val billId = backStackEntry.arguments?.getInt("billId") ?: -1
+            AddEditBillScreen(
+                viewModel = viewModel,
+                billId = billId,
                 onBack = { navController.popBackStack() }
             )
         }

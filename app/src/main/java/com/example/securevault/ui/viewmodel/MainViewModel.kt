@@ -8,6 +8,7 @@ import com.example.securevault.crypto.AuthManager
 import com.example.securevault.crypto.CryptoManager
 import com.example.securevault.crypto.ExportImportManager
 import com.example.securevault.data.AppDatabase
+import com.example.securevault.data.BillRepository
 import com.example.securevault.data.CredentialRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,10 +21,12 @@ import kotlinx.coroutines.withContext
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: CredentialRepository
+    private val billRepository: BillRepository
     private val exportImportManager: ExportImportManager
     private val authManager: AuthManager
 
     val credentials: StateFlow<List<CredentialRepository.DomainCredential>>
+    val bills: StateFlow<List<BillRepository.DomainBill>>
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
@@ -39,12 +42,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val database = AppDatabase.getDatabase(application)
         val cryptoManager = CryptoManager()
         repository = CredentialRepository(database.credentialDao(), cryptoManager)
+        billRepository = BillRepository(database.billDao(), cryptoManager)
         exportImportManager = ExportImportManager(application)
         authManager = AuthManager(application)
         
         _isSetupRequired.value = !authManager.isSetup()
         
         credentials = repository.domainCredentials.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+        
+        bills = billRepository.domainBills.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()
@@ -83,6 +93,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteCredential(id: Int) {
         viewModelScope.launch {
             repository.deleteCredential(id)
+        }
+    }
+    
+    // Bill Management
+    fun addBill(billName: String, amount: String, notes: String, dueDate: Long, frequency: String) {
+        viewModelScope.launch {
+            billRepository.insertBill(billName, amount, notes, dueDate, frequency)
+        }
+    }
+
+    fun updateBill(id: Int, billName: String, amount: String, notes: String, dueDate: Long, frequency: String) {
+        viewModelScope.launch {
+            billRepository.updateBill(id, billName, amount, notes, dueDate, frequency)
+        }
+    }
+
+    fun deleteBill(id: Int) {
+        viewModelScope.launch {
+            billRepository.deleteBill(id)
         }
     }
 
