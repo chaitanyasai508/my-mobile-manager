@@ -27,6 +27,7 @@ fun AddEditScreen(
     var title by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     
@@ -43,6 +44,7 @@ fun AddEditScreen(
                 title = cred.title
                 username = cred.username
                 password = cred.password
+                url = cred.url
                 notes = cred.notes
             }
         }
@@ -114,6 +116,14 @@ fun AddEditScreen(
             )
 
             OutlinedTextField(
+                value = url,
+                onValueChange = { url = it },
+                label = { Text("URL") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Notes") },
@@ -125,9 +135,9 @@ fun AddEditScreen(
                 onClick = {
                     if (title.isNotBlank()) {
                         if (isEditMode) {
-                            viewModel.updateCredential(credentialId, title, username, password, notes)
+                            viewModel.updateCredential(credentialId, title, username, password, url, notes)
                         } else {
-                            viewModel.addCredential(title, username, password, notes)
+                            viewModel.addCredential(title, username, password, url, notes)
                         }
                         onBack()
                     }
