@@ -29,29 +29,30 @@ class CredentialRepository(
         val title: String,
         val username: String,
         val password: String,
+        val url: String,
         val notes: String
     )
 
     val domainCredentials: Flow<List<DomainCredential>> = credentialDao.getAllCredentials().map { entities ->
         entities.map { entity ->
             val plain = decryptCredential(entity)
-            DomainCredential(entity.id, plain.title, plain.username, plain.password, plain.notes)
+            DomainCredential(entity.id, plain.title, plain.username, plain.password, plain.url, plain.notes)
         }
     }
 
     suspend fun getCredential(id: Int): DomainCredential? {
         val entity = credentialDao.getCredentialById(id) ?: return null
         val plain = decryptCredential(entity)
-        return DomainCredential(entity.id, plain.title, plain.username, plain.password, plain.notes)
+        return DomainCredential(entity.id, plain.title, plain.username, plain.password, plain.url, plain.notes)
     }
 
-    suspend fun insertCredential(title: String, username: String, password: String, notes: String) {
-        val entity = encryptCredential(title, username, password, notes)
+    suspend fun insertCredential(title: String, username: String, password: String, url: String, notes: String) {
+        val entity = encryptCredential(title, username, password, url, notes)
         credentialDao.insertCredential(entity)
     }
 
-    suspend fun updateCredential(id: Int, title: String, username: String, password: String, notes: String) {
-        val entity = encryptCredential(title, username, password, notes).copy(id = id)
+    suspend fun updateCredential(id: Int, title: String, username: String, password: String, url: String, notes: String) {
+        val entity = encryptCredential(title, username, password, url, notes).copy(id = id)
         credentialDao.updateCredential(entity)
     }
 
@@ -68,9 +69,10 @@ class CredentialRepository(
         credentialDao.deleteAll()
     }
 
-    private fun encryptCredential(title: String, username: String, password: String, notes: String): Credential {
+    private fun encryptCredential(title: String, username: String, password: String, url: String, notes: String): Credential {
         val (usernameIv, encryptedUsername) = cryptoManager.encrypt(username.toByteArray())
         val (passwordIv, encryptedPassword) = cryptoManager.encrypt(password.toByteArray())
+        val (urlIv, encryptedUrl) = cryptoManager.encrypt(url.toByteArray())
         val (notesIv, encryptedNotes) = cryptoManager.encrypt(notes.toByteArray())
 
         return Credential(
@@ -79,6 +81,8 @@ class CredentialRepository(
             encryptedUsername = Base64.getEncoder().encodeToString(encryptedUsername),
             passwordIv = Base64.getEncoder().encodeToString(passwordIv),
             encryptedPassword = Base64.getEncoder().encodeToString(encryptedPassword),
+            urlIv = Base64.getEncoder().encodeToString(urlIv),
+            encryptedUrl = Base64.getEncoder().encodeToString(encryptedUrl),
             notesIv = Base64.getEncoder().encodeToString(notesIv),
             encryptedNotes = Base64.getEncoder().encodeToString(encryptedNotes)
         )
@@ -95,6 +99,11 @@ class CredentialRepository(
             Base64.getDecoder().decode(entity.encryptedPassword)
         ).toString(Charsets.UTF_8)
 
+        val url = cryptoManager.decrypt(
+            Base64.getDecoder().decode(entity.urlIv),
+            Base64.getDecoder().decode(entity.encryptedUrl)
+        ).toString(Charsets.UTF_8)
+
         val notes = cryptoManager.decrypt(
             Base64.getDecoder().decode(entity.notesIv),
             Base64.getDecoder().decode(entity.encryptedNotes)
@@ -104,6 +113,7 @@ class CredentialRepository(
             title = entity.title,
             username = username,
             password = password,
+            url = url,
             notes = notes
         )
     }

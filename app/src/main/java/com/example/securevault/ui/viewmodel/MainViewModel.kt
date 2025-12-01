@@ -68,15 +68,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addCredential(title: String, username: String, pass: String, notes: String) {
+    fun addCredential(title: String, username: String, pass: String, url: String, notes: String) {
         viewModelScope.launch {
-            repository.insertCredential(title, username, pass, notes)
+            repository.insertCredential(title, username, pass, url, notes)
         }
     }
 
-    fun updateCredential(id: Int, title: String, username: String, pass: String, notes: String) {
+    fun updateCredential(id: Int, title: String, username: String, pass: String, url: String, notes: String) {
         viewModelScope.launch {
-            repository.updateCredential(id, title, username, pass, notes)
+            repository.updateCredential(id, title, username, pass, url, notes)
         }
     }
 
@@ -100,7 +100,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             
             // Hack for now: collect once.
             val currentList = credentials.value.map { 
-                ExportImportManager.PlainCredential(it.title, it.username, it.password, it.notes)
+                ExportImportManager.PlainCredential(it.title, it.username, it.password, it.url, it.notes)
             }
             
             val success = exportImportManager.exportData(uri, password, currentList)
@@ -121,7 +121,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // Or maybe we should wipe? "Import" often implies restore.
                 // Let's just append.
                 importedList.forEach {
-                    repository.insertCredential(it.title, it.username, it.password, it.notes)
+                    repository.insertCredential(it.title, it.username, it.password, it.url, it.notes)
                 }
                 withContext(Dispatchers.Main) {
                     _uiState.value = UiState.Success("Import Successful")
