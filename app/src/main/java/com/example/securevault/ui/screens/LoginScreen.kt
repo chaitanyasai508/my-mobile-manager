@@ -1,6 +1,7 @@
 package com.example.securevault.ui.screens
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -130,6 +132,13 @@ fun PinInput(
     label: String,
     isError: Boolean = false
 ) {
+    val focusRequester = remember { FocusRequester() }
+
+    // Request focus when the screen is shown
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
@@ -139,30 +148,36 @@ fun PinInput(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(6) { index ->
-                PinDigitBox(
-                    digit = pin.getOrNull(index)?.toString() ?: "",
-                    isFocused = pin.length == index,
-                    isError = isError,
-                    modifier = Modifier.weight(1f)
-                )
+        Box(contentAlignment = Alignment.Center) {
+            // Hidden text field for keyboard input
+            // Must have size > 0 to receive focus events properly on some devices
+            BasicTextField(
+                value = pin,
+                onValueChange = onPinChange,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                modifier = Modifier
+                    .matchParentSize()
+                    .alpha(0f)
+                    .focusRequester(focusRequester)
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(6) { index ->
+                    PinDigitBox(
+                        digit = pin.getOrNull(index)?.toString() ?: "",
+                        isFocused = pin.length == index,
+                        isError = isError,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { focusRequester.requestFocus() }
+                    )
+                }
             }
         }
-        
-        // Hidden text field for keyboard input
-        BasicTextField(
-            value = pin,
-            onValueChange = onPinChange,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            modifier = Modifier
-                .size(0.dp)
-                .focusRequester(FocusRequester())
-        )
     }
 }
 
