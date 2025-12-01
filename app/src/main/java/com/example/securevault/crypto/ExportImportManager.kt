@@ -23,7 +23,13 @@ class ExportImportManager(private val context: Context) {
     data class ExportData(
         val salt: String, // Base64
         val iv: String,   // Base64
-        val data: String  // Base64 encrypted JSON list of credentials
+        val data: String  // Base64 encrypted JSON of AllData
+    )
+    
+    // Container for all exported data
+    data class AllData(
+        val credentials: List<PlainCredential>,
+        val bills: List<PlainBill>
     )
     
     // Plain object to serialize before encryption
@@ -34,8 +40,16 @@ class ExportImportManager(private val context: Context) {
         val url: String,
         val notes: String
     )
+    
+    data class PlainBill(
+        val billName: String,
+        val amount: String,
+        val notes: String,
+        val dueDate: Long,
+        val frequency: String
+    )
 
-    fun exportData(uri: Uri, password: String, credentials: List<PlainCredential>): Boolean {
+    fun exportData(uri: Uri, password: String, credentials: List<PlainCredential>, bills: List<PlainBill>): Boolean {
         return try {
             val salt = ByteArray(16)
             SecureRandom().nextBytes(salt)
@@ -49,7 +63,8 @@ class ExportImportManager(private val context: Context) {
             cipher.init(Cipher.ENCRYPT_MODE, secretKey)
             val iv = cipher.iv
 
-            val jsonString = gson.toJson(credentials)
+            val allData = AllData(credentials, bills)
+            val jsonString = gson.toJson(allData)
             val encryptedBytes = cipher.doFinal(jsonString.toByteArray(Charsets.UTF_8))
 
             val exportData = ExportData(
@@ -72,7 +87,7 @@ class ExportImportManager(private val context: Context) {
         }
     }
 
-    fun importData(uri: Uri, password: String): List<PlainCredential>? {
+    fun importData(uri: Uri, password: String): AllData? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             val jsonString = InputStreamReader(inputStream).use { it.readText() }
@@ -95,8 +110,15 @@ class ExportImportManager(private val context: Context) {
             val decryptedBytes = cipher.doFinal(encryptedBytes)
             val decryptedJson = String(decryptedBytes, Charsets.UTF_8)
 
-            val type = object : TypeToken<List<PlainCredential>>() {}.type
-            gson.fromJson(decryptedJson, type)
+            // Try to parse as AllData first (new format)
+            try {
+                gson.fromJson(decryptedJson, AllData::class.java)
+            } catch (e: Exception) {
+                // Fallback: old format with just credentials
+                val type = object : TypeToken<List<PlainCredential>>() {}.type
+                val credentials: List<PlainCredential> = gson.fromJson(decryptedJson, type)
+                AllData(credentials, emptyList())
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             null

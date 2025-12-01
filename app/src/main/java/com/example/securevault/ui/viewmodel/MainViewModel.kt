@@ -128,11 +128,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Let's add a helper in Repo to get snapshot.
             
             // Hack for now: collect once.
-            val currentList = credentials.value.map { 
+            val currentCredentials = credentials.value.map { 
                 ExportImportManager.PlainCredential(it.title, it.username, it.password, it.url, it.notes)
             }
             
-            val success = exportImportManager.exportData(uri, password, currentList)
+            val currentBills = bills.value.map {
+                ExportImportManager.PlainBill(it.billName, it.amount, it.notes, it.dueDate, it.frequency)
+            }
+            
+            val success = exportImportManager.exportData(uri, password, currentCredentials, currentBills)
             withContext(Dispatchers.Main) {
                 _uiState.value = if (success) UiState.Success("Export Successful") else UiState.Error("Export Failed")
             }
@@ -142,15 +146,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun importData(uri: Uri, password: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = UiState.Loading
-            val importedList = exportImportManager.importData(uri, password)
-            if (importedList != null) {
-                // Clear existing and replace? Or append?
-                // User asked for import. Usually append or merge.
-                // Let's append for safety, user can delete duplicates.
-                // Or maybe we should wipe? "Import" often implies restore.
-                // Let's just append.
-                importedList.forEach {
+            val allData = exportImportManager.importData(uri, password)
+            if (allData != null) {
+                // Import credentials
+                allData.credentials.forEach {
                     repository.insertCredential(it.title, it.username, it.password, it.url, it.notes)
+                }
+                // Import bills
+                allData.bills.forEach {
+                    billRepository.insertBill(it.billName, it.amount, it.notes, it.dueDate, it.frequency)
                 }
                 withContext(Dispatchers.Main) {
                     _uiState.value = UiState.Success("Import Successful")
