@@ -11,6 +11,8 @@ data class Credential(
     val encryptedUsername: String, // Base64 encoded encrypted data
     val passwordIv: String, // Base64 encoded IV
     val encryptedPassword: String, // Base64 encoded encrypted data
+    val urlIv: String, // Base64 encoded IV
+    val encryptedUrl: String, // Base64 encoded encrypted data
     val notesIv: String, // Base64 encoded IV
     val encryptedNotes: String, // Base64 encoded encrypted data
     val timestamp: Long = System.currentTimeMillis()
