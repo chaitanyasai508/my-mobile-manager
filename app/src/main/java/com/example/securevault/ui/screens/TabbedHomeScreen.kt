@@ -2,6 +2,7 @@ package com.example.securevault.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
@@ -18,11 +19,13 @@ fun TabbedHomeScreen(
     onCredentialClick: (Int) -> Unit,
     onAddBillClick: () -> Unit,
     onBillClick: (Int) -> Unit,
+    onAddNoteClick: () -> Unit,
+    onNoteClick: (Int) -> Unit,
     onSettingsClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Passwords", "Bills")
-    val icons = listOf(Icons.Default.Lock, Icons.Default.Receipt)
+    val tabs = listOf("Passwords", "Bills", "Notes")
+    val icons = listOf(Icons.Default.Lock, Icons.Default.Receipt, Icons.Default.Description)
 
     Scaffold(
         topBar = {
@@ -59,6 +62,11 @@ fun TabbedHomeScreen(
                     viewModel = viewModel,
                     onAddClick = onAddBillClick,
                     onItemClick = onBillClick
+                )
+                2 -> NotesListScreen(
+                    viewModel = viewModel,
+                    onAddClick = onAddNoteClick,
+                    onItemClick = onNoteClick
                 )
             }
         }

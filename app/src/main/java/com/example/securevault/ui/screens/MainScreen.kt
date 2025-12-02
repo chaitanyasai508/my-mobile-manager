@@ -30,6 +30,8 @@ fun MainScreen(viewModel: MainViewModel) {
                 onCredentialClick = { id -> navController.navigate("add_edit/$id") },
                 onAddBillClick = { navController.navigate("add_edit_bill/-1") },
                 onBillClick = { id -> navController.navigate("add_edit_bill/$id") },
+                onAddNoteClick = { navController.navigate("add_edit_note/-1") },
+                onNoteClick = { id -> navController.navigate("add_edit_note/$id") },
                 onSettingsClick = { navController.navigate("settings") }
             )
         }
@@ -53,6 +55,17 @@ fun MainScreen(viewModel: MainViewModel) {
                 viewModel = viewModel,
                 billId = billId,
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            "add_edit_note/{noteId}",
+            arguments = listOf(navArgument("noteId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getInt("noteId") ?: -1
+            AddEditNoteScreen(
+                viewModel = viewModel,
+                noteId = if (noteId == -1) null else noteId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable("settings") {

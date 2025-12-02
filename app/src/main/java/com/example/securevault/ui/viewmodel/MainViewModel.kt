@@ -10,6 +10,7 @@ import com.example.securevault.crypto.ExportImportManager
 import com.example.securevault.data.AppDatabase
 import com.example.securevault.data.BillRepository
 import com.example.securevault.data.CredentialRepository
+import com.example.securevault.data.NoteRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,11 +23,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: CredentialRepository
     private val billRepository: BillRepository
+    private val noteRepository: NoteRepository
     private val exportImportManager: ExportImportManager
     private val authManager: AuthManager
 
     val credentials: StateFlow<List<CredentialRepository.DomainCredential>>
     val bills: StateFlow<List<BillRepository.DomainBill>>
+    val notes: StateFlow<List<NoteRepository.DomainNote>>
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
@@ -43,6 +46,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val cryptoManager = CryptoManager()
         repository = CredentialRepository(database.credentialDao(), cryptoManager)
         billRepository = BillRepository(database.billDao(), cryptoManager)
+        noteRepository = NoteRepository(database.noteDao(), cryptoManager)
         exportImportManager = ExportImportManager(application)
         authManager = AuthManager(application)
         
@@ -55,6 +59,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
         
         bills = billRepository.domainBills.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+        
+        notes = noteRepository.domainNotes.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()
@@ -114,20 +124,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             billRepository.deleteBill(id)
         }
     }
+    
+    // Note Management
+    fun addNote(title: String, content: String) {
+        viewModelScope.launch {
+            noteRepository.insertNote(title, content)
+        }
+    }
+
+    fun updateNote(id: Int, title: String, content: String) {
+        viewModelScope.launch {
+            noteRepository.updateNote(id, title, content)
+        }
+    }
+
+    fun deleteNote(id: Int) {
+        viewModelScope.launch {
+            noteRepository.deleteNote(id)
+        }
+    }
 
     fun exportData(uri: Uri, password: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = UiState.Loading
-            // We need to fetch all plain credentials first
-            // Since we can't collect the flow here easily in a one-off, let's just rely on the current state if possible,
-            // or better, add a suspend function to repo to get all plain credentials.
-            // For now, let's map the current value of the stateflow if it's populated, or query the DB.
-            // A cleaner way is to expose a suspend function in Repo.
-            // Let's assume we can get them from the flow for now or just re-query.
-            // Actually, let's just use the repo's flow but we need a snapshot.
-            // Let's add a helper in Repo to get snapshot.
             
-            // Hack for now: collect once.
             val currentCredentials = credentials.value.map { 
                 ExportImportManager.PlainCredential(it.title, it.username, it.password, it.url, it.notes)
             }
@@ -136,7 +156,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 ExportImportManager.PlainBill(it.billName, it.amount, it.notes, it.dueDate, it.frequency)
             }
             
-            val success = exportImportManager.exportData(uri, password, currentCredentials, currentBills)
+            val currentNotes = notes.value.map {
+                ExportImportManager.PlainNote(it.title, it.content)
+            }
+            
+            val success = exportImportManager.exportData(uri, password, currentCredentials, currentBills, currentNotes)
             withContext(Dispatchers.Main) {
                 _uiState.value = if (success) UiState.Success("Export Successful") else UiState.Error("Export Failed")
             }
@@ -155,6 +179,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // Import bills
                 allData.bills.forEach {
                     billRepository.insertBill(it.billName, it.amount, it.notes, it.dueDate, it.frequency)
+                }
+                // Import notes
+                allData.notes.forEach {
+                    noteRepository.insertNote(it.title, it.content)
                 }
                 withContext(Dispatchers.Main) {
                     _uiState.value = UiState.Success("Import Successful")

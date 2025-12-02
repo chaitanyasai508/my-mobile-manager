@@ -29,7 +29,8 @@ class ExportImportManager(private val context: Context) {
     // Container for all exported data
     data class AllData(
         val credentials: List<PlainCredential>,
-        val bills: List<PlainBill>
+        val bills: List<PlainBill>,
+        val notes: List<PlainNote> = emptyList()
     )
     
     // Plain object to serialize before encryption
@@ -48,8 +49,13 @@ class ExportImportManager(private val context: Context) {
         val dueDate: Long,
         val frequency: String
     )
+    
+    data class PlainNote(
+        val title: String,
+        val content: String
+    )
 
-    fun exportData(uri: Uri, password: String, credentials: List<PlainCredential>, bills: List<PlainBill>): Boolean {
+    fun exportData(uri: Uri, password: String, credentials: List<PlainCredential>, bills: List<PlainBill>, notes: List<PlainNote>): Boolean {
         return try {
             val salt = ByteArray(16)
             SecureRandom().nextBytes(salt)
@@ -63,7 +69,7 @@ class ExportImportManager(private val context: Context) {
             cipher.init(Cipher.ENCRYPT_MODE, secretKey)
             val iv = cipher.iv
 
-            val allData = AllData(credentials, bills)
+            val allData = AllData(credentials, bills, notes)
             val jsonString = gson.toJson(allData)
             val encryptedBytes = cipher.doFinal(jsonString.toByteArray(Charsets.UTF_8))
 
@@ -117,7 +123,7 @@ class ExportImportManager(private val context: Context) {
                 // Fallback: old format with just credentials
                 val type = object : TypeToken<List<PlainCredential>>() {}.type
                 val credentials: List<PlainCredential> = gson.fromJson(decryptedJson, type)
-                AllData(credentials, emptyList())
+                AllData(credentials, emptyList(), emptyList())
             }
         } catch (e: Exception) {
             e.printStackTrace()
