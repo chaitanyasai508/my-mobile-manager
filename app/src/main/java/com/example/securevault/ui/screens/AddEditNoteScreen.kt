@@ -1,30 +1,30 @@
 package com.example.securevault.ui.screens
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FormatBold
-import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.securevault.ui.components.richtext.*
 import com.example.securevault.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +37,13 @@ fun AddEditNoteScreen(
     val existingNote = notes.find { it.id == noteId }
 
     var title by remember { mutableStateOf(existingNote?.title ?: "") }
-    // Use TextFieldValue for cursor position control if needed, but String is simpler for now
-    // For rich text editing, we need to manipulate the text at cursor.
-    // Let's use TextFieldValue to track selection.
     var content by remember { mutableStateOf(TextFieldValue(existingNote?.content ?: "")) }
+    var showFormatMenu by remember { mutableStateOf(false) }
+
+    // Parsed content for display
+    val parsedContent = remember(content.text) {
+        RichTextParser.parse(content.text)
+    }
 
     Scaffold(
         topBar = {
@@ -94,125 +97,115 @@ fun AddEditNoteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Formatting Toolbar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconButton(onClick = {
-                    content = insertFormatting(content, "*", "*")
-                }) {
-                    Icon(Icons.Default.FormatBold, contentDescription = "Bold")
-                }
-                IconButton(onClick = {
-                    content = insertFormatting(content, "_", "_")
-                }) {
-                    Icon(Icons.Default.FormatItalic, contentDescription = "Italic")
-                }
-                IconButton(onClick = {
-                    content = insertFormatting(content, "- ", "")
-                }) {
-                    Icon(Icons.Default.FormatListBulleted, contentDescription = "List")
-                }
-            }
+            // Hint text
+            Text(
+                text = "Formatting: *bold* _italic_ ~strike~ `code` - bullet 1. numbered",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Content Input (Rich Text)
-            // We use BasicTextField to have full control over rendering
-            Box(
+            // Rich Text Content Input
+            Card(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
-                    .padding(4.dp)
-            ) {
-                BasicTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    modifier = Modifier.fillMaxSize(),
-                    textStyle = TextStyle(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 16.sp
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    visualTransformation = { text ->
-                        // Render markdown symbols
-                        val annotatedString = renderMarkdown(text.text)
-                        androidx.compose.ui.text.input.TransformedText(annotatedString, androidx.compose.ui.text.input.OffsetMapping.Identity)
-                    }
+                    .fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
-                
-                if (content.text.isEmpty()) {
-                    Text(
-                        text = "Start typing...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp) // Align with text
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    // Show formatting menu if there's a selection
+                                    if (content.selection.start != content.selection.end) {
+                                        showFormatMenu = true
+                                    }
+                                }
+                            )
+                        }
+                ) {
+                    BasicTextField(
+                        value = content,
+                        onValueChange = { newValue ->
+                            // Handle special keys
+                            if (newValue.text.length > content.text.length) {
+                                val addedChar = newValue.text[newValue.selection.start - 1]
+                                if (addedChar == '\n') {
+                                    // Handle Enter key for smart list continuation
+                                    val (newText, newCursor) = RichTextUtils.handleEnterKey(
+                                        content.text,
+                                        content.selection.start - 1
+                                    )
+                                    content = TextFieldValue(
+                                        text = newText,
+                                        selection = TextRange(newCursor)
+                                    )
+                                    return@BasicTextField
+                                }
+                            }
+                            content = newValue
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        textStyle = TextStyle(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Default
+                        ),
+                        decorationBox = { innerTextField ->
+                            if (content.text.isEmpty()) {
+                                Text(
+                                    text = "Start typing...\n\nTip: Long-press selected text for formatting menu",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp)
+                                )
+                            }
+                            // Show the parsed/formatted text as overlay
+                            if (content.text.isNotEmpty()) {
+                                Text(
+                                    text = parsedContent,
+                                    style = TextStyle(
+                                        fontSize = 16.sp,
+                                        lineHeight = 24.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                            }
+                            // The actual input field (invisible but receives input)
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                innerTextField()
+                            }
+                        }
                     )
                 }
             }
-        }
-    }
-}
 
-// Helper to insert formatting characters around selection
-fun insertFormatting(value: TextFieldValue, prefix: String, suffix: String): TextFieldValue {
-    val text = value.text
-    val selection = value.selection
-
-    val before = text.substring(0, selection.start)
-    val selected = text.substring(selection.start, selection.end)
-    val after = text.substring(selection.end)
-
-    val newText = "$before$prefix$selected$suffix$after"
-    
-    // Move cursor to end of inserted text (or inside if no selection)
-    val newCursorPos = if (selected.isEmpty()) {
-        selection.start + prefix.length
-    } else {
-        selection.end + prefix.length + suffix.length
-    }
-
-    return TextFieldValue(
-        text = newText,
-        selection = androidx.compose.ui.text.TextRange(newCursorPos)
-    )
-}
-
-// Simple Markdown Parser
-fun renderMarkdown(text: String): AnnotatedString {
-    return buildAnnotatedString {
-        var currentIndex = 0
-        val boldRegex = "\\*([^*]+)\\*".toRegex()
-        val italicRegex = "_([^_]+)_".toRegex()
-        
-        // We need to parse sequentially. For simplicity in this "WhatsApp-like" implementation,
-        // we'll just apply styles to the raw text including the markers, 
-        // OR we can try to hide markers. Hiding markers is complex with OffsetMapping.
-        // Let's just style the text INCLUDING markers for now, like WhatsApp does while typing.
-        // Actually, WhatsApp hides them after you send, but shows them while typing.
-        // Since this is an editor, showing them is correct.
-        
-        append(text)
-        
-        // Apply Bold
-        boldRegex.findAll(text).forEach { match ->
-            addStyle(
-                style = SpanStyle(fontWeight = FontWeight.Bold, color = Color.Black), // Make bold text distinct
-                start = match.range.first,
-                end = match.range.last + 1
-            )
-        }
-        
-        // Apply Italic
-        italicRegex.findAll(text).forEach { match ->
-            addStyle(
-                style = SpanStyle(fontStyle = FontStyle.Italic),
-                start = match.range.first,
-                end = match.range.last + 1
+            // Formatting Context Menu
+            FormattingContextMenu(
+                visible = showFormatMenu,
+                onDismiss = { showFormatMenu = false },
+                onFormatSelected = { formatType ->
+                    val (newText, newCursor) = applyFormatting(
+                        content.text,
+                        content.selection.start,
+                        content.selection.end,
+                        formatType
+                    )
+                    content = TextFieldValue(
+                        text = newText,
+                        selection = TextRange(newCursor)
+                    )
+                }
             )
         }
     }
