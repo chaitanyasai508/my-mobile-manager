@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -40,7 +39,6 @@ fun AddEditNoteScreen(
         )
     }
     var showToolbar by remember { mutableStateOf(true) }
-    val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
         topBar = {
