@@ -96,7 +96,7 @@ fun NoteCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = com.example.securevault.ui.components.richtext.RichTextUtils.stripFormatting(content),
+                text = com.example.securevault.ui.components.richtext.RichTextParser.parse(content),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
