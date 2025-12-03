@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,6 +16,7 @@ import com.example.securevault.ui.theme.Spacing
  * Modern card component with rounded corners and elevation.
  * Use this for consistent card styling throughout the app.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernCard(
     modifier: Modifier = Modifier,
