@@ -1,5 +1,6 @@
 package com.example.securevault.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -7,12 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
-import com.example.securevault.ui.components.ModernCard
-import com.example.securevault.ui.theme.Spacing
-import com.example.securevault.ui.theme.ErrorRed
-import com.example.securevault.ui.theme.WarningOrange
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -252,7 +248,15 @@ fun BillCard(
     frequency: String,
     onClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
+    val frequencyColor = when (frequency) {
+        "MONTHLY" -> Color(0xFF2196F3) // Blue
+        "QUARTERLY" -> Color(0xFF4CAF50) // Green
+        "SEMI_ANNUAL" -> Color(0xFFFF9800) // Orange
+        "ANNUAL" -> Color(0xFF9C27B0) // Purple
+        else -> Color.Gray
+    }
+
+    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     val dueDateStr = dateFormat.format(Date(dueDate))
     
     // Calculate days until due
@@ -264,21 +268,26 @@ fun BillCard(
     }.timeInMillis
     
     val daysUntil = ((dueDate - today) / (1000 * 60 * 60 * 24)).toInt()
-    val isOverdue = daysUntil < 0
-    val isDueSoon = daysUntil in 0..3
-    
-    val statusColor = when {
-        isOverdue -> ErrorRed
-        isDueSoon -> WarningOrange
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    val daysText = when {
+        daysUntil < 0 -> "Overdue"
+        daysUntil == 0 -> "Due today"
+        daysUntil == 1 -> "Due tomorrow"
+        else -> "Due in $daysUntil days"
     }
 
-    ModernCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -286,43 +295,43 @@ fun BillCard(
                 Text(
                     text = billName,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(Spacing.small))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "$$amount",
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.height(Spacing.small))
-                
-                // Due date with icon
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = statusColor
-                    )
-                    Text(
-                        text = dueDateStr,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = statusColor
-                    )
-                }
-                
-                // Frequency
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = dueDateStr,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = daysText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (daysUntil < 0) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Frequency badge
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = frequencyColor.copy(alpha = 0.2f),
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
                 Text(
                     text = frequency.replace("_", " "),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = frequencyColor,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
     }
 }
+
 
