@@ -71,6 +71,9 @@ dependencies {
     
     // Security Crypto
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    
+    // Rich Text Editor
+    implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-rc13")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

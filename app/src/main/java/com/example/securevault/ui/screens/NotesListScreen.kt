@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.example.securevault.ui.components.ModernCard
 import com.example.securevault.ui.theme.Spacing
 import com.example.securevault.ui.viewmodel.MainViewModel
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import com.mohamedrejeb.richeditor.ui.material3.RichText
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -103,6 +106,12 @@ fun NoteCard(
 ) {
     val dateFormat = SimpleDateFormat("MMM dd, yyyy 'at' h:mm a", Locale.getDefault())
     val dateStr = dateFormat.format(Date(timestamp))
+    
+    // Create rich text state for preview
+    val previewState = rememberRichTextState()
+    remember(content) {
+        previewState.setHtml(content)
+    }
 
     ModernCard(
         onClick = onClick,
@@ -118,13 +127,13 @@ fun NoteCard(
             )
             Spacer(modifier = Modifier.height(Spacing.small))
             
-            // Formatted preview
-            Text(
-                text = com.example.securevault.ui.components.richtext.RichTextParser.parse(content),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+            // Content preview with rich text
+            RichText(
+                state = previewState,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.heightIn(max = 60.dp)
             )
             Spacer(modifier = Modifier.height(Spacing.small))
             

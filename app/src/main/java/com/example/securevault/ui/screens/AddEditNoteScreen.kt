@@ -1,25 +1,29 @@
 package com.example.securevault.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.ParagraphStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.example.securevault.ui.components.richtext.*
+import androidx.compose.ui.unit.sp
 import com.example.securevault.ui.theme.Spacing
 import com.example.securevault.ui.viewmodel.MainViewModel
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,15 +36,14 @@ fun AddEditNoteScreen(
     val existingNote = notes.find { it.id == noteId }
 
     var title by remember { mutableStateOf(existingNote?.title ?: "") }
-    var content by remember {
-        mutableStateOf(
-            TextFieldValue(
-                text = existingNote?.content ?: "",
-                selection = TextRange((existingNote?.content?.length ?: 0))
-            )
-        )
+    val richTextState = rememberRichTextState()
+    
+    // Load existing content
+    LaunchedEffect(existingNote) {
+        existingNote?.content?.let { content ->
+            richTextState.setHtml(content)
+        }
     }
-    var showToolbar by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -60,16 +63,20 @@ fun AddEditNoteScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
                     }
-                    IconButton(onClick = {
-                        if (title.isNotBlank()) {
-                            if (noteId == null) {
-                                viewModel.addNote(title, content.text)
-                            } else {
-                                viewModel.updateNote(noteId, title, content.text)
+                    IconButton(
+                        onClick = {
+                            if (title.isNotBlank()) {
+                                val htmlContent = richTextState.toHtml()
+                                if (noteId == null) {
+                                    viewModel.addNote(title, htmlContent)
+                                } else {
+                                    viewModel.updateNote(noteId, title, htmlContent)
+                                }
+                                onNavigateBack()
                             }
-                            onNavigateBack()
-                        }
-                    }) {
+                        },
+                        enabled = title.isNotBlank()
+                    ) {
                         Icon(Icons.Default.Check, contentDescription = "Save")
                     }
                 },
@@ -80,20 +87,15 @@ fun AddEditNoteScreen(
             )
         },
         bottomBar = {
-            FormattingToolbar(
-                onInsertFormat = { formatType ->
-                    content = insertFormatting(content, formatType)
-                },
-                visible = showToolbar,
-                onToggleVisibility = { showToolbar = !showToolbar }
-            )
+            RichTextToolbar(richTextState = richTextState)
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .padding(Spacing.medium)
+                .padding(Spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
         ) {
             // Title Input
             OutlinedTextField(
@@ -115,43 +117,237 @@ fun AddEditNoteScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            // Content Input
-            OutlinedTextField(
-                value = content,
-                onValueChange = { newValue ->
-                    // Check if Enter was pressed
-                    if (newValue.text.length > content.text.length &&
-                        newValue.text.getOrNull(newValue.selection.start - 1) == '\n'
-                    ) {
-                        // Try smart list continuation
-                        val smartResult = handleEnterKey(content)
-                        if (smartResult != null) {
-                            content = smartResult
-                            return@OutlinedTextField
-                        }
-                    }
-                    content = newValue
-                },
-                label = { Text("Content") },
-                placeholder = {
-                    Text("Type your note here...\n\nUse *bold* _italic_ ~strike~\n- Bullet lists\n1. Numbered lists")
-                },
+            // Rich Text Editor
+            RichTextEditor(
+                state = richTextState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 textStyle = MaterialTheme.typography.bodyLarge,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Default
+                placeholder = {
+                    Text(
+                        text = "Start typing your note...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                },
+                colors = RichTextEditorDefaults.richTextEditorColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
                 ),
-                maxLines = Int.MAX_VALUE,
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun RichTextToolbar(
+    richTextState: com.mohamedrejeb.richeditor.model.RichTextState
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 3.dp
+    ) {
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.small, vertical = Spacing.small),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall)
+        ) {
+            // Bold
+            item {
+                ToolbarButton(
+                    icon = Icons.Default.FormatBold,
+                    contentDescription = "Bold",
+                    isActive = richTextState.currentSpanStyle.fontWeight == FontWeight.Bold,
+                    onClick = {
+                        richTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    }
                 )
+            }
+            
+            // Italic
+            item {
+                ToolbarButton(
+                    icon = Icons.Default.FormatItalic,
+                    contentDescription = "Italic",
+                    isActive = richTextState.currentSpanStyle.fontStyle == FontStyle.Italic,
+                    onClick = {
+                        richTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    }
+                )
+            }
+            
+            // Divider
+            item {
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .padding(horizontal = 4.dp)
+                )
+            }
+            
+            // H1
+            item {
+                ToolbarButton(
+                    text = "H1",
+                    contentDescription = "Heading 1",
+                    isActive = richTextState.currentSpanStyle.fontSize == 24.sp,
+                    onClick = {
+                        richTextState.toggleSpanStyle(
+                            SpanStyle(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                )
+            }
+            
+            // H2
+            item {
+                ToolbarButton(
+                    text = "H2",
+                    contentDescription = "Heading 2",
+                    isActive = richTextState.currentSpanStyle.fontSize == 20.sp,
+                    onClick = {
+                        richTextState.toggleSpanStyle(
+                            SpanStyle(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                )
+            }
+            
+            // H3
+            item {
+                ToolbarButton(
+                    text = "H3",
+                    contentDescription = "Heading 3",
+                    isActive = richTextState.currentSpanStyle.fontSize == 18.sp,
+                    onClick = {
+                        richTextState.toggleSpanStyle(
+                            SpanStyle(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                )
+            }
+            
+            // Divider
+            item {
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .padding(horizontal = 4.dp)
+                )
+            }
+            
+            // Unordered List
+            item {
+                ToolbarButton(
+                    icon = Icons.Default.FormatListBulleted,
+                    contentDescription = "Bullet List",
+                    isActive = richTextState.isUnorderedList,
+                    onClick = {
+                        richTextState.toggleUnorderedList()
+                    }
+                )
+            }
+            
+            // Ordered List
+            item {
+                ToolbarButton(
+                    icon = Icons.Default.FormatListNumbered,
+                    contentDescription = "Numbered List",
+                    isActive = richTextState.isOrderedList,
+                    onClick = {
+                        richTextState.toggleOrderedList()
+                    }
+                )
+            }
+            
+            // Divider
+            item {
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .padding(horizontal = 4.dp)
+                )
+            }
+            
+            // Link
+            item {
+                ToolbarButton(
+                    icon = Icons.Default.Link,
+                    contentDescription = "Add Link",
+                    isActive = richTextState.isLink,
+                    onClick = {
+                        // For simplicity, using a basic link
+                        // In a real app, you'd show a dialog to get URL
+                        if (!richTextState.isLink) {
+                            richTextState.addLink(
+                                text = "Link",
+                                url = "https://example.com"
+                            )
+                        }
+                    }
+                )
+            }
+            
+            // Code Block
+            item {
+                ToolbarButton(
+                    icon = Icons.Default.Code,
+                    contentDescription = "Code Block",
+                    isActive = richTextState.isCodeSpan,
+                    onClick = {
+                        richTextState.toggleCodeSpan()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ToolbarButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    text: String? = null,
+    contentDescription: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = if (isActive) 
+                MaterialTheme.colorScheme.primaryContainer 
+            else 
+                MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (isActive)
+                MaterialTheme.colorScheme.onPrimaryContainer
+            else
+                MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        modifier = Modifier.size(40.dp)
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(20.dp)
+            )
+        } else if (text != null) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
             )
         }
     }
