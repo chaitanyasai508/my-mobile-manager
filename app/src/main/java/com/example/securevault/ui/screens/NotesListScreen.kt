@@ -101,7 +101,7 @@ fun NoteCard(
     timestamp: Long,
     onClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat(\"MMM dd, yyyy 'at' h:mm a\", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("MMM dd, yyyy 'at' h:mm a", Locale.getDefault())
     val dateStr = dateFormat.format(Date(timestamp))
 
     ModernCard(
