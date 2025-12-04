@@ -39,15 +39,20 @@ fun BillsListScreen(
     var selectedMonth by remember { mutableStateOf(currentCalendar.get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(currentCalendar.get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
+    var showAllBills by remember { mutableStateOf(false) }
     
-    // Filter bills for selected month
-    val billsForMonth = remember(bills, selectedMonth, selectedYear) {
-        getBillsForMonth(bills, selectedMonth, selectedYear)
+    // Filter bills for selected month or show all
+    val displayedBills = remember(bills, selectedMonth, selectedYear, showAllBills) {
+        if (showAllBills) {
+            bills.sortedBy { it.dueDate }
+        } else {
+            getBillsForMonth(bills, selectedMonth, selectedYear)
+        }
     }
     
     // Calculate total
-    val totalAmount = remember(billsForMonth) {
-        billsForMonth.sumOf { it.amount.toDoubleOrNull() ?: 0.0 }
+    val totalAmount = remember(displayedBills) {
+        displayedBills.sumOf { it.amount.toDoubleOrNull() ?: 0.0 }
     }
     
     val monthFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
@@ -57,71 +62,97 @@ fun BillsListScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Month Selector Card
-        Card(
+        // Filter chips
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = !showAllBills,
+                onClick = { showAllBills = false },
+                label = { Text("This Month") }
             )
+            FilterChip(
+                selected = showAllBills,
+                onClick = { showAllBills = true },
+                label = { Text("All Bills") }
+            )
+        }
+        
+        // Month Selector Card (only show when not viewing all)
+        OutlinedCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Bills for",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = monthFormat.format(selectedDate.time),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Row {
-                        IconButton(onClick = {
-                            if (selectedMonth == 0) {
-                                selectedMonth = 11
-                                selectedYear--
-                            } else {
-                                selectedMonth--
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Previous Month",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                if (!showAllBills) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Bills for",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = monthFormat.format(selectedDate.time),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        IconButton(onClick = {
-                            if (selectedMonth == 11) {
-                                selectedMonth = 0
-                                selectedYear++
-                            } else {
-                                selectedMonth++
+                        Row {
+                            IconButton(onClick = {
+                                if (selectedMonth == 0) {
+                                    selectedMonth = 11
+                                    selectedYear--
+                                } else {
+                                    selectedMonth--
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Previous Month",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowForward,
-                                contentDescription = "Next Month",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            IconButton(onClick = {
+                                if (selectedMonth == 11) {
+                                    selectedMonth = 0
+                                    selectedYear++
+                                } else {
+                                    selectedMonth++
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowForward,
+                                    contentDescription = "Next Month",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                } else {
+                    Text(
+                        text = "All Bills",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                
-                Spacer(modifier = Modifier.height(8.dp))
                 
                 // Total amount
                 Text(
@@ -132,27 +163,32 @@ fun BillsListScreen(
                 )
                 
                 Text(
-                    text = "${billsForMonth.size} bill(s)",
+                    text = "${displayedBills.size} bill(s)",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-
-        if (billsForMonth.isEmpty()) {
+        
+        // Bills List
+        if (displayedBills.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No bills due this month")
+                Text(
+                    text = if (showAllBills) "No bills found" else "No bills for this month",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(billsForMonth) { bill ->
+                items(displayedBills) { bill ->
                     BillCard(
                         billName = bill.billName,
                         amount = bill.amount,

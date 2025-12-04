@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import com.example.securevault.ui.viewmodel.MainViewModel
 
@@ -23,7 +24,7 @@ fun TabbedHomeScreen(
     onNoteClick: (Int) -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
     val tabs = listOf("Passwords", "Bills", "Notes")
     val icons = listOf(Icons.Default.Lock, Icons.Default.Receipt, Icons.Default.Description)
 
