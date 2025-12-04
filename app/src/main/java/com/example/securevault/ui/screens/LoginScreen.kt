@@ -1,10 +1,13 @@
 package com.example.securevault.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
@@ -20,6 +24,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.securevault.ui.theme.Spacing
 import com.example.securevault.ui.viewmodel.MainViewModel
 
 @Composable
@@ -53,28 +58,51 @@ fun LoginScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                        MaterialTheme.colorScheme.background
+                    )
+                )
+            )
     ) {
-        Text(
-            text = if (isSetupRequired) "Create 6-Digit PIN" else "Enter PIN",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = if (isSetupRequired) "Set a 6-digit PIN to protect your data" else "Enter your 6-digit PIN",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Spacing.large),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // App icon
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            
+            Spacer(modifier = Modifier.height(Spacing.large))
+            
+            Text(
+                text = if (isSetupRequired) "Create 6-Digit PIN" else "Enter PIN",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            Spacer(modifier = Modifier.height(Spacing.small))
+            
+            Text(
+                text = if (isSetupRequired) "Set a 6-digit PIN to protect your data" else "Enter your 6-digit PIN",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
 
-        Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(Spacing.huge))
 
         // PIN Input
         PinInput(
@@ -87,40 +115,41 @@ fun LoginScreen(
             label = if (isSetupRequired) "Enter PIN" else "PIN"
         )
 
-        if (isSetupRequired) {
-            Spacer(modifier = Modifier.height(32.dp))
-            PinInput(
-                pin = confirmPin,
-                onPinChange = { newPin ->
-                    if (newPin.length <= 6 && newPin.all { it.isDigit() }) {
-                        confirmPin = newPin
-                    }
+            if (isSetupRequired) {
+                Spacer(modifier = Modifier.height(Spacing.extraLarge))
+                PinInput(
+                    pin = confirmPin,
+                    onPinChange = { newPin ->
+                        if (newPin.length <= 6 && newPin.all { it.isDigit() }) {
+                            confirmPin = newPin
+                        }
+                    },
+                    label = "Confirm PIN",
+                    isError = confirmPin.isNotEmpty() && confirmPin != pin
+                )
+            }
+            
+            if (uiState is MainViewModel.UiState.Error) {
+                Spacer(modifier = Modifier.height(Spacing.medium))
+                Text(
+                    text = (uiState as MainViewModel.UiState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.extraLarge))
+
+            // Clear button
+            OutlinedButton(
+                onClick = {
+                    pin = ""
+                    confirmPin = ""
                 },
-                label = "Confirm PIN",
-                isError = confirmPin.isNotEmpty() && confirmPin != pin
-            )
-        }
-        
-        if (uiState is MainViewModel.UiState.Error) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = (uiState as MainViewModel.UiState.Error).message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Clear button
-        OutlinedButton(
-            onClick = {
-                pin = ""
-                confirmPin = ""
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Clear")
+                modifier = Modifier.fillMaxWidth(0.7f)
+            ) {
+                Text("Clear")
+            }
         }
     }
 }
