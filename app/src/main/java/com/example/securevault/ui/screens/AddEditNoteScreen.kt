@@ -94,6 +94,7 @@ fun AddEditNoteScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .imePadding() // Move up with keyboard
         ) {
             Column(
                 modifier = Modifier

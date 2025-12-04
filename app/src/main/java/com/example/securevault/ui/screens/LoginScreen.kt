@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
@@ -173,6 +174,8 @@ fun PinInput(
         }
     }
 
+    var isTextFieldFocused by remember { mutableStateOf(false) }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
@@ -193,6 +196,7 @@ fun PinInput(
                     .matchParentSize()
                     .alpha(0f)
                     .focusRequester(focusRequester)
+                    .onFocusChanged { isTextFieldFocused = it.isFocused }
             )
 
             Row(
@@ -203,7 +207,7 @@ fun PinInput(
                 repeat(6) { index ->
                     PinDigitBox(
                         digit = pin.getOrNull(index)?.toString() ?: "",
-                        isFocused = pin.length == index,
+                        isFocused = isTextFieldFocused && pin.length == index,
                         isError = isError,
                         modifier = Modifier
                             .weight(1f)
