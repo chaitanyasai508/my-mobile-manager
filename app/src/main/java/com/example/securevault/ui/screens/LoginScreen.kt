@@ -112,7 +112,8 @@ fun LoginScreen(
                     pin = newPin
                 }
             },
-            label = if (isSetupRequired) "Enter PIN" else "PIN"
+            label = if (isSetupRequired) "Enter PIN" else "PIN",
+            autoFocus = true  // Auto-focus first field
         )
 
             if (isSetupRequired) {
@@ -125,7 +126,8 @@ fun LoginScreen(
                         }
                     },
                     label = "Confirm PIN",
-                    isError = confirmPin.isNotEmpty() && confirmPin != pin
+                    isError = confirmPin.isNotEmpty() && confirmPin != pin,
+                    autoFocus = false  // Don't auto-focus second field
                 )
             }
             
@@ -159,13 +161,16 @@ fun PinInput(
     pin: String,
     onPinChange: (String) -> Unit,
     label: String,
-    isError: Boolean = false
+    isError: Boolean = false,
+    autoFocus: Boolean = false
 ) {
     val focusRequester = remember { FocusRequester() }
 
-    // Request focus when the screen is shown
+    // Request focus only if autoFocus is true
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        if (autoFocus) {
+            focusRequester.requestFocus()
+        }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

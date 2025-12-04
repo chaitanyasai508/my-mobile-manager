@@ -38,6 +38,9 @@ fun AddEditNoteScreen(
     var title by remember { mutableStateOf(existingNote?.title ?: "") }
     val richTextState = rememberRichTextState()
     
+    // Track if text is selected
+    val hasSelection = richTextState.selection.length > 0
+    
     // Load existing content
     LaunchedEffect(existingNote) {
         existingNote?.content?.let { content ->
@@ -85,74 +88,89 @@ fun AddEditNoteScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
-        },
-        bottomBar = {
-            RichTextToolbar(richTextState = richTextState)
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .padding(Spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
         ) {
-            // Title Input
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Title") },
-                placeholder = { Text("Note title") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Next
-                ),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            )
-
-            // Rich Text Editor
-            RichTextEditor(
-                state = richTextState,
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                textStyle = MaterialTheme.typography.bodyLarge,
-                placeholder = {
-                    Text(
-                        text = "Start typing your note...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    .fillMaxSize()
+                    .padding(Spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+            ) {
+                // Title Input
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    placeholder = { Text("Note title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Next
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
-                },
-                colors = RichTextEditorDefaults.richTextEditorColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
-                ),
-                shape = RoundedCornerShape(12.dp)
-            )
+                )
+
+                // Rich Text Editor
+                RichTextEditor(
+                    state = richTextState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    placeholder = {
+                        Text(
+                            text = "Start typing your note...\nSelect text to format",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    colors = RichTextEditorDefaults.richTextEditorColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+            
+            // Floating toolbar - shows when text is selected
+            if (hasSelection) {
+                RichTextToolbar(
+                    richTextState = richTextState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = Spacing.medium)
+                )
+            }
         }
     }
 }
 
 @Composable
 fun RichTextToolbar(
-    richTextState: com.mohamedrejeb.richeditor.model.RichTextState
+    richTextState: com.mohamedrejeb.richeditor.model.RichTextState,
+    modifier: Modifier = Modifier
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 3.dp
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
         LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.small, vertical = Spacing.small),
+            modifier = Modifier.padding(horizontal = Spacing.small, vertical = Spacing.extraSmall),
             horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall)
         ) {
             // Bold
