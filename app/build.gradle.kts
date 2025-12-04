@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.securevault"
-        minSdk = 26 // Android 8.0+ for better security features
+        minSdk = 34 // Android 14+ for latest security features
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
