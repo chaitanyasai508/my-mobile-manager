@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.securevault"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.securevault"
         minSdk = 26 // Android 8.0+ for better security features
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
