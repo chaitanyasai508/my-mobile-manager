@@ -169,27 +169,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun importData(uri: Uri, password: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = UiState.Loading
-            val allData = exportImportManager.importData(uri, password)
-            if (allData != null) {
-                // Import credentials
-                allData.credentials.forEach {
-                    repository.insertCredential(it.title, it.username, it.password, it.url, it.notes)
+            try {
+                _uiState.value = UiState.Loading
+                val allData = exportImportManager.importData(uri, password)
+                if (allData != null) {
+                    // Import credentials
+                    allData.credentials.forEach {
+                        try {
+                            repository.insertCredential(it.title, it.username, it.password, it.url, it.notes)
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainViewModel", "Failed to import credential: ${it.title}", e)
+                            throw e
+                        }
+                    }
+                    // Import bills
+                    allData.bills.forEach {
+                        try {
+                            billRepository.insertBill(it.billName, it.amount, it.notes, it.dueDate, it.frequency)
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainViewModel", "Failed to import bill: ${it.billName}", e)
+                            throw e
+                        }
+                    }
+                    // Import notes
+                    allData.notes.forEach {
+                        try {
+                            noteRepository.insertNote(it.title, it.content)
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainViewModel", "Failed to import note: ${it.title}", e)
+                            throw e
+                        }
+                    }
+                    withContext(Dispatchers.Main) {
+                        _uiState.value = UiState.Success("Import Successful: ${allData.credentials.size} credentials, ${allData.bills.size} bills, ${allData.notes.size} notes")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        _uiState.value = UiState.Error("Import Failed: Invalid password or corrupted file")
+                    }
                 }
-                // Import bills
-                allData.bills.forEach {
-                    billRepository.insertBill(it.billName, it.amount, it.notes, it.dueDate, it.frequency)
-                }
-                // Import notes
-                allData.notes.forEach {
-                    noteRepository.insertNote(it.title, it.content)
-                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Import error", e)
                 withContext(Dispatchers.Main) {
-                    _uiState.value = UiState.Success("Import Successful")
-                }
-            } else {
-                withContext(Dispatchers.Main) {
-                    _uiState.value = UiState.Error("Import Failed: Invalid password or file")
+                    _uiState.value = UiState.Error("Import Failed: ${e.message ?: "Unknown error"}")
                 }
             }
         }

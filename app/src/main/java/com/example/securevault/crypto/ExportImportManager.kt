@@ -95,37 +95,68 @@ class ExportImportManager(private val context: Context) {
 
     fun importData(uri: Uri, password: String): AllData? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-            val jsonString = InputStreamReader(inputStream).use { it.readText() }
+            android.util.Log.d("ExportImportManager", "Starting import from URI: $uri")
             
-            val exportData = gson.fromJson(jsonString, ExportData::class.java)
+            val inputStream = context.contentResolver.openInputStream(uri)
+            if (inputStream == null) {
+                android.util.Log.e("ExportImportManager", "Failed to open input stream")
+                return null
+            }
+            
+            val jsonString = InputStreamReader(inputStream).use { it.readText() }
+            android.util.Log.d("ExportImportManager", "Read ${jsonString.length} characters from file")
+            
+            val exportData = try {
+                gson.fromJson(jsonString, ExportData::class.java)
+            } catch (e: Exception) {
+                android.util.Log.e("ExportImportManager", "Failed to parse JSON", e)
+                return null
+            }
+            
+            android.util.Log.d("ExportImportManager", "Parsed export data structure")
             
             val salt = Base64.decode(exportData.salt, Base64.NO_WRAP)
             val iv = Base64.decode(exportData.iv, Base64.NO_WRAP)
             val encryptedBytes = Base64.decode(exportData.data, Base64.NO_WRAP)
+
+            android.util.Log.d("ExportImportManager", "Decoded Base64 data - salt: ${salt.size} bytes, iv: ${iv.size} bytes, encrypted: ${encryptedBytes.size} bytes")
 
             val keySpec = PBEKeySpec(password.toCharArray(), salt, 65536, 256)
             val secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
             val keyBytes = secretKeyFactory.generateSecret(keySpec).encoded
             val secretKey = SecretKeySpec(keyBytes, "AES")
 
+            android.util.Log.d("ExportImportManager", "Generated decryption key")
+
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             val spec = GCMParameterSpec(128, iv)
             cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
 
-            val decryptedBytes = cipher.doFinal(encryptedBytes)
+            val decryptedBytes = try {
+                cipher.doFinal(encryptedBytes)
+            } catch (e: Exception) {
+                android.util.Log.e("ExportImportManager", "Decryption failed - likely wrong password", e)
+                return null
+            }
+            
             val decryptedJson = String(decryptedBytes, Charsets.UTF_8)
+            android.util.Log.d("ExportImportManager", "Decrypted ${decryptedJson.length} characters")
 
             // Try to parse as AllData first (new format)
             try {
-                gson.fromJson(decryptedJson, AllData::class.java)
+                val allData = gson.fromJson(decryptedJson, AllData::class.java)
+                android.util.Log.d("ExportImportManager", "Parsed as AllData: ${allData.credentials.size} credentials, ${allData.bills.size} bills, ${allData.notes.size} notes")
+                allData
             } catch (e: Exception) {
+                android.util.Log.w("ExportImportManager", "Failed to parse as AllData, trying legacy format", e)
                 // Fallback: old format with just credentials
                 val type = object : TypeToken<List<PlainCredential>>() {}.type
                 val credentials: List<PlainCredential> = gson.fromJson(decryptedJson, type)
+                android.util.Log.d("ExportImportManager", "Parsed as legacy format: ${credentials.size} credentials")
                 AllData(credentials, emptyList(), emptyList())
             }
         } catch (e: Exception) {
+            android.util.Log.e("ExportImportManager", "Import failed with exception", e)
             e.printStackTrace()
             null
         }
