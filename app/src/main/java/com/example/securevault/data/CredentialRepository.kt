@@ -1,12 +1,12 @@
 package com.example.securevault.data
 
+import android.util.Base64
 import com.example.securevault.crypto.CryptoManager
 import com.example.securevault.crypto.ExportImportManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import java.util.Base64
 
 class CredentialRepository(
     private val credentialDao: CredentialDao,
@@ -77,36 +77,36 @@ class CredentialRepository(
 
         return Credential(
             title = title,
-            usernameIv = Base64.getEncoder().encodeToString(usernameIv),
-            encryptedUsername = Base64.getEncoder().encodeToString(encryptedUsername),
-            passwordIv = Base64.getEncoder().encodeToString(passwordIv),
-            encryptedPassword = Base64.getEncoder().encodeToString(encryptedPassword),
-            urlIv = Base64.getEncoder().encodeToString(urlIv),
-            encryptedUrl = Base64.getEncoder().encodeToString(encryptedUrl),
-            notesIv = Base64.getEncoder().encodeToString(notesIv),
-            encryptedNotes = Base64.getEncoder().encodeToString(encryptedNotes)
+            usernameIv = Base64.encodeToString(usernameIv, Base64.NO_WRAP),
+            encryptedUsername = Base64.encodeToString(encryptedUsername, Base64.NO_WRAP),
+            passwordIv = Base64.encodeToString(passwordIv, Base64.NO_WRAP),
+            encryptedPassword = Base64.encodeToString(encryptedPassword, Base64.NO_WRAP),
+            urlIv = Base64.encodeToString(urlIv, Base64.NO_WRAP),
+            encryptedUrl = Base64.encodeToString(encryptedUrl, Base64.NO_WRAP),
+            notesIv = Base64.encodeToString(notesIv, Base64.NO_WRAP),
+            encryptedNotes = Base64.encodeToString(encryptedNotes, Base64.NO_WRAP)
         )
     }
 
     private fun decryptCredential(entity: Credential): ExportImportManager.PlainCredential {
         val username = cryptoManager.decrypt(
-            Base64.getDecoder().decode(entity.usernameIv),
-            Base64.getDecoder().decode(entity.encryptedUsername)
+            Base64.decode(entity.usernameIv, Base64.NO_WRAP),
+            Base64.decode(entity.encryptedUsername, Base64.NO_WRAP)
         ).toString(Charsets.UTF_8)
 
         val password = cryptoManager.decrypt(
-            Base64.getDecoder().decode(entity.passwordIv),
-            Base64.getDecoder().decode(entity.encryptedPassword)
+            Base64.decode(entity.passwordIv, Base64.NO_WRAP),
+            Base64.decode(entity.encryptedPassword, Base64.NO_WRAP)
         ).toString(Charsets.UTF_8)
 
         val url = cryptoManager.decrypt(
-            Base64.getDecoder().decode(entity.urlIv),
-            Base64.getDecoder().decode(entity.encryptedUrl)
+            Base64.decode(entity.urlIv, Base64.NO_WRAP),
+            Base64.decode(entity.encryptedUrl, Base64.NO_WRAP)
         ).toString(Charsets.UTF_8)
 
         val notes = cryptoManager.decrypt(
-            Base64.getDecoder().decode(entity.notesIv),
-            Base64.getDecoder().decode(entity.encryptedNotes)
+            Base64.decode(entity.notesIv, Base64.NO_WRAP),
+            Base64.decode(entity.encryptedNotes, Base64.NO_WRAP)
         ).toString(Charsets.UTF_8)
 
         return ExportImportManager.PlainCredential(

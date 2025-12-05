@@ -1,9 +1,9 @@
 package com.example.securevault.data
 
+import android.util.Base64
 import com.example.securevault.crypto.CryptoManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.Base64
 
 class BillRepository(
     private val billDao: BillDao,
@@ -61,10 +61,10 @@ class BillRepository(
 
         return Bill(
             billName = billName,
-            amountIv = Base64.getEncoder().encodeToString(amountIv),
-            encryptedAmount = Base64.getEncoder().encodeToString(encryptedAmount),
-            notesIv = Base64.getEncoder().encodeToString(notesIv),
-            encryptedNotes = Base64.getEncoder().encodeToString(encryptedNotes),
+            amountIv = Base64.encodeToString(amountIv, Base64.NO_WRAP),
+            encryptedAmount = Base64.encodeToString(encryptedAmount, Base64.NO_WRAP),
+            notesIv = Base64.encodeToString(notesIv, Base64.NO_WRAP),
+            encryptedNotes = Base64.encodeToString(encryptedNotes, Base64.NO_WRAP),
             dueDate = dueDate,
             frequency = frequency
         )
@@ -72,8 +72,8 @@ class BillRepository(
 
     private fun decryptField(ivBase64: String, encryptedBase64: String): String {
         return cryptoManager.decrypt(
-            Base64.getDecoder().decode(ivBase64),
-            Base64.getDecoder().decode(encryptedBase64)
+            Base64.decode(ivBase64, Base64.NO_WRAP),
+            Base64.decode(encryptedBase64, Base64.NO_WRAP)
         ).toString(Charsets.UTF_8)
     }
 }

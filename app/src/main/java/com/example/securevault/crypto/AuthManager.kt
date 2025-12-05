@@ -2,8 +2,8 @@ package com.example.securevault.crypto
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Base64
 import java.security.SecureRandom
-import java.util.Base64
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
@@ -30,8 +30,8 @@ class AuthManager(context: Context) {
             val hash = hashPassword(password, salt)
 
             prefs.edit()
-                .putString(KEY_SALT, Base64.getEncoder().encodeToString(salt))
-                .putString(KEY_HASH, Base64.getEncoder().encodeToString(hash))
+                .putString(KEY_SALT, Base64.encodeToString(salt, Base64.NO_WRAP))
+                .putString(KEY_HASH, Base64.encodeToString(hash, Base64.NO_WRAP))
                 .apply()
             true
         } catch (e: Exception) {
@@ -45,8 +45,8 @@ class AuthManager(context: Context) {
             val saltString = prefs.getString(KEY_SALT, null) ?: return false
             val storedHashString = prefs.getString(KEY_HASH, null) ?: return false
 
-            val salt = Base64.getDecoder().decode(saltString)
-            val storedHash = Base64.getDecoder().decode(storedHashString)
+            val salt = Base64.decode(saltString, Base64.NO_WRAP)
+            val storedHash = Base64.decode(storedHashString, Base64.NO_WRAP)
 
             val computedHash = hashPassword(password, salt)
 

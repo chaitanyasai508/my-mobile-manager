@@ -2,6 +2,7 @@ package com.example.securevault.crypto
 
 import android.content.Context
 import android.net.Uri
+import android.util.Base64
 import com.example.securevault.data.Credential
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -13,7 +14,6 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
-import java.util.Base64
 
 class ExportImportManager(private val context: Context) {
 
@@ -74,9 +74,9 @@ class ExportImportManager(private val context: Context) {
             val encryptedBytes = cipher.doFinal(jsonString.toByteArray(Charsets.UTF_8))
 
             val exportData = ExportData(
-                salt = Base64.getEncoder().encodeToString(salt),
-                iv = Base64.getEncoder().encodeToString(iv),
-                data = Base64.getEncoder().encodeToString(encryptedBytes)
+                salt = Base64.encodeToString(salt, Base64.NO_WRAP),
+                iv = Base64.encodeToString(iv, Base64.NO_WRAP),
+                data = Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
             )
 
             val exportJson = gson.toJson(exportData)
@@ -100,9 +100,9 @@ class ExportImportManager(private val context: Context) {
             
             val exportData = gson.fromJson(jsonString, ExportData::class.java)
             
-            val salt = Base64.getDecoder().decode(exportData.salt)
-            val iv = Base64.getDecoder().decode(exportData.iv)
-            val encryptedBytes = Base64.getDecoder().decode(exportData.data)
+            val salt = Base64.decode(exportData.salt, Base64.NO_WRAP)
+            val iv = Base64.decode(exportData.iv, Base64.NO_WRAP)
+            val encryptedBytes = Base64.decode(exportData.data, Base64.NO_WRAP)
 
             val keySpec = PBEKeySpec(password.toCharArray(), salt, 65536, 256)
             val secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
