@@ -38,9 +38,6 @@ fun AddEditNoteScreen(
     var title by remember { mutableStateOf(existingNote?.title ?: "") }
     val richTextState = rememberRichTextState()
     
-    // Track if text is selected
-    val hasSelection = richTextState.selection.length > 0
-    
     // Load existing content
     LaunchedEffect(existingNote) {
         existingNote?.content?.let { content ->
@@ -99,7 +96,8 @@ fun AddEditNoteScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(Spacing.medium),
+                    .padding(Spacing.medium)
+                    .padding(bottom = 70.dp), // Add padding for toolbar
                 verticalArrangement = Arrangement.spacedBy(Spacing.medium)
             ) {
                 // Title Input
@@ -131,7 +129,7 @@ fun AddEditNoteScreen(
                     textStyle = MaterialTheme.typography.bodyLarge,
                     placeholder = {
                         Text(
-                            text = "Start typing your note...\nSelect text to format",
+                            text = "Start typing your note...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     },
@@ -144,15 +142,13 @@ fun AddEditNoteScreen(
                 )
             }
             
-            // Floating toolbar - shows when text is selected
-            if (hasSelection) {
-                RichTextToolbar(
-                    richTextState = richTextState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = Spacing.medium)
-                )
-            }
+            // Floating toolbar - Always visible
+            RichTextToolbar(
+                richTextState = richTextState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = Spacing.medium)
+            )
         }
     }
 }

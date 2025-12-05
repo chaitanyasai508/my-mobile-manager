@@ -157,7 +157,7 @@ fun BillsListScreen(
                 
                 // Total amount
                 Text(
-                    text = "Total: $${"%.2f".format(totalAmount)}",
+                    text = "Total: ${formatIndianCurrency(totalAmount)}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -277,6 +277,18 @@ private fun getBillsForMonth(
     }
 }
 
+// Helper for Indian Currency Formatting
+fun formatIndianCurrency(amount: Double): String {
+    val format = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+    // Remove the symbol provided by formatter to use our own if needed, 
+    // but Locale("en", "IN") usually gives "₹ 1,23,456.00" or similar.
+    // Let's trust the locale but ensure it looks right.
+    // Actually, on some Android versions it might be "Rs.". 
+    // Let's force the symbol to be sure.
+    val formatted = format.format(amount)
+    return if (formatted.contains("₹")) formatted else "₹ ${format.format(amount).replace("Rs.", "").trim()}"
+}
+
 @Composable
 fun BillCard(
     billName: String,
@@ -336,7 +348,7 @@ fun BillCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "$$amount",
+                    text = formatIndianCurrency(amount.toDoubleOrNull() ?: 0.0),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
