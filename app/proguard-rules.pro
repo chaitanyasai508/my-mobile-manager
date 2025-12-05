@@ -33,3 +33,9 @@
 
 # Optimize but don't remove or rename
 -optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+
+# Ignore warnings for Tink's optional dependencies (not used in this app)
+-dontwarn com.google.api.client.http.**
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+-dontwarn org.joda.time.**
